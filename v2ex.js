@@ -1,7 +1,7 @@
 var express = require('express');
 var cheerio = require('cheerio');
 var superagent = require('superagent');
-const HOST = 'https://www.v2ex.com/';
+const HOST = 'https://www.v2ex.com';
 const LOGIN_PATH = HOST+'/signin';
 const PAGE_SIZE = 50;
 
@@ -43,7 +43,7 @@ app.get('/signin',function(req,res,next){
 			return next(err);
 		}
 		var $ = cheerio.load(sres.text);
-		
+		var once = $('input[name=once]').attr('value');
 	});
 });
 
