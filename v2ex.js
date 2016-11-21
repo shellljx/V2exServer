@@ -19,9 +19,12 @@ app.get('/',function(req,res,next){
 	var query = url.parse(req.url,true).query;
 	var tab = query['tab'];
 	var pageIndex = getPageIndex(req);
+	var cookie = req.cookies.PB3_SESSION
+	console.log('/->PB3_SESSION='+cookie);
 	superagent.get(HOST)
 	.query({'tab':tab})
 	.query({'p':pageIndex})
+	.set('Cookie','PB3_SESSION='+cookie)
 	.end(function(err,sres){
 		if (err) {
 			return next(err);
@@ -33,6 +36,8 @@ app.get('/',function(req,res,next){
 		var msg = $('.message').text();
 		response.message = msg==null?"":msg;
 		response.posts = parsePost($);
+		console.log(sres.headers['set-cookie']);
+		res.setHeader('Set-Cookie',sres.headers['set-cookie']);
 		res.send(response);
 	});
 });
@@ -114,6 +119,7 @@ app.get('/t/*',function(req,res,next){
 		response.text = $('div.topic_content').html();
 		response.once = $('input[name=once]').attr('value')==undefined?"":$('input[name=once]').attr('value');
 		console.log(sres.headers['set-cookie']);
+		res.setHeader('Set-Cookie',sres.headers['set-cookie']);
 		res.send(response);
 	});
 });
@@ -150,7 +156,10 @@ app.get('/comments/*',function(req,res,next){
 });
 
 app.get('/signin',function(req,res,next){
+	var cookie = req.cookies.PB3_SESSION
+	console.log('get/signin->PB3_SESSION='+cookie);
 	superagent.get(LOGIN_PATH)
+	.set('Cookie','PB3_SESSION='+cookie)
 	.end(function(err,sres){
 		if (err) {
 			return next(err);
@@ -159,48 +168,40 @@ app.get('/signin',function(req,res,next){
 		var once = $('input[name=once]').attr('value');
 		var input_name = $('input[placeholder=用户名或电子邮箱地址]').attr('name');
 		var input_psw = $('input[type=password]').attr('name');
-		var cookie = sres.headers['set-cookie'].join(';').split(';')[0].match(/\"(.*)\"/g).toString().replace(/^\"|\"$/g,'');
-        console.log(sres.headers['set-cookie']);
-        console.log(cookie);
 
 		var body = {};
-		body[input_name] = '1057645164@qq.com';
-		body[input_psw] = '149162536max';
+		body['nameKey'] = input_name;
+		body['pswKey'] = input_psw;
 		body['once'] = once;
 		body['next'] = '/';
-		body['cookie'] = cookie;
+		console.log('get/signin->setCookie'+sres.headers['set-cookie']);
+		res.setHeader('Set-Cookie',sres.headers['set-cookie']);
 		res.send(body);
-
 		// superagent.post(LOGIN_PATH)
   //   	.type('form')
-  //   	.send(input_name)
-  //   	.set('Cookie','PB3_SESSION='+cookie)
+  //   	.send(body)
+  //   	.set('Cookie',cookie)
   //  		.end(function(err,loginRes){
   //   		res.send(loginRes);
   // 		});
-
 	});
 });
 
 app.post('/signin',function(req,res,next){
 	var body = req.body;
-	var cookie = req.cookies.PB3_SESSION;
-	console.log(cookie);
+	var cookie = req.cookies.PB3_SESSION
+	console.log('post/signin->PB3_SESSION='+req.cookies);
 	console.log(body);	
 
 	superagent.post(LOGIN_PATH)
     .type('form')
     .set('Cookie','PB3_SESSION='+cookie)
     .send(body)
-   	.end(function(err,loginRes){
-    	res.send(loginRes);
-    	// var loginCookie = sres.header['set-cookie'];
-    	// console.log(loginCookie.toString());
-    	// superagent.get(HOST+'/recent')
-    	// .set('cookie',loginCookie.toString())
-   		// .end(function(err,recentRes){
-   		// 	res.send(recentRes);
-   		// });
+   	.end(function(err,sres){
+   		console.log('post/signin->setCookie'+sres.headers['set-cookie']);
+		res.setHeader('Set-Cookie',sres.headers['set-cookie']);
+    	res.send(sres);
+
   	});
 });
 
@@ -215,7 +216,7 @@ app.post('/t/*',function(req,res,next){
 
 	superagent.post(HOST+path)
 	.type('form')
-	.set('Cookie','A2='+cookie.A2+';PB3_SESSION='+cookie.PB3_SESSION)
+	.set('Cookie','A2='+cookie.A2+';PB3_SESSION=2|1:0|10:1479371817|11:PB3_SESSION|40:djJleDoxMTUuMjM2LjE2MS42Nzo5NTAwMDY4Nw==|b56f8d9c0795320e9bd3e57728b38b910eabc51269a44ee39ba1314c81b38501')
 	//.set('Cookie','A2=2|1:0|10:1479348497|2:A2|56:MGVhMTU2YWM5ZDFmMzM4NjRiYzE5NDgzMjAyMGMxNDRiOGVjNWM5OQ==|11d244b4071f6ff86e405dc989a891034a1cc52a0b422193c143d1d9473e7633;PB3_SESSION=2|1:0|10:1478857952|11:PB3_SESSION|40:djJleDoxMTUuMjM2LjE2MS42Nzo4NTM4MDgzNA==|dae3409ac4fd2fe8621db3db1051a3d6f611c18f2d96433306ff4a44c2d6cf08')
 	.send(body)
 	.end(function(err,sres){
